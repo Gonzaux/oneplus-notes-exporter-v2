@@ -2,6 +2,7 @@ import os
 import re
 import html
 from lxml import etree
+from datetime import datetime
 
 
 def sanitize_filename(filename, max_length=40):
@@ -101,6 +102,14 @@ def escape_quotes(xml_string):
     return escaped_xml
 
 
+def parse_date(timestamp_c, timestamp_m):
+    timestamp_c_in_ns = int(timestamp_c)
+    timestamp_m_in_ns = int(timestamp_m)
+    timestamp_in_s = int(timestamp_c) / 1000
+    creation_datetime = datetime.fromtimestamp(timestamp_in_s)
+    return creation_datetime, timestamp_c_in_ns, timestamp_m_in_ns
+
+
 def parse_xml_to_txt_lxml(xml_file, output_dir):
     """
     Parse the XML file and create a text file for each <noteRecord>.
@@ -132,12 +141,13 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
             print("Failed to parse XML.")
             return
 
-        # Iterate through each <noteRecord> element
+        # Iterate through each <richNoteRecord> element, change argument for './/noteRecord' if such tag used in imported XML file
         for note in root.findall('.//richNoteRecord'):
             _id = note.get('local_id')  # Unique identifier for the note
             title = note.get('title')  # Title of the note
             content = note.get('text', '')  # Content of the note
-            date = note.get('update_time')
+            timestamp_c = note.get('create_time')
+            timestamp_m = note.get('update_time')
 
             # Ensure _id is present
             if not _id:
@@ -147,17 +157,16 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
             # Decode HTML entities (e.g., &#10; to newline)
             content = html.unescape(content)
 
-            # Include title in the file content (helpful when notes don't have titles and their first line becomes a title)
-            file_text = f"{title}{content}\n{date}"
-
 
             # Sanitize the title to create a valid filename
             sanitized_title = sanitize_filename(title)
-            # Create title from text
+            # If title is empty create title from text
             first_words = content.split()[:8] # Set how many first words use to make title
+            # turn list of words to str with spaces
             sanitized_title_empty = " ".join(first_words)
 
-            file_format = ".md"
+
+            file_format = ".txt"
             # Create the filename using sanitized title
             if title:
                 filename = f"{sanitized_title}{file_format}"
@@ -168,16 +177,28 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
             file_path = os.path.join(output_dir, filename)
 
 
+            # Unpacking tuple from parse_date func
+            file_date, file_timestamp_c_ns, file_timestamp_m_ns = parse_date(timestamp_c, timestamp_m)
+
+            # Convert ns in s and pack times for utime format (int,int)
+            times = (file_timestamp_c_ns / 1000, file_timestamp_m_ns / 1000)
 
 
+            # Include date in note
+            file_text = f"{content}\n{file_date}"
 
             # Write the content to the text file
             # mode "a+" chosen for merge duplicates notes into one note file
             with open(file_path, 'a+', encoding='utf-8') as f_out:
                 f_out.write("\n" + file_text)
 
+            # Set modification time to file metadata
+            os.utime(file_path, times)
+
             print(f"Created: {file_path}")
             print(f"title is:{title}")
+            print(f"date of file is {file_date}")
+
 
     except etree.XMLSyntaxError as e:
         print(f"Error parsing XML with lxml: {e}")
