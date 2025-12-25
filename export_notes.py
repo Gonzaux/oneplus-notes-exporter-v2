@@ -135,7 +135,7 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
         # Iterate through each <noteRecord> element
         for note in root.findall('.//richNoteRecord'):
             _id = note.get('local_id')  # Unique identifier for the note
-            title = note.get('raw_title', 'Untitled')  # Title of the note
+            title = note.get('title')  # Title of the note
             content = note.get('text', '')  # Content of the note
             date = note.get('update_time')
 
@@ -148,28 +148,36 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
             content = html.unescape(content)
 
             # Include title in the file content (helpful when notes don't have titles and their first line becomes a title)
-            file_text = f"{title}{content}{date}"
+            file_text = f"{title}{content}\n{date}"
+
 
             # Sanitize the title to create a valid filename
-            sanitized_title = sanitize_filename(' '.join(content.split()[:8]))
+            sanitized_title = sanitize_filename(title)
+            # Create title from text
+            first_words = content.split()[:8] # Set how many first words use to make title
+            sanitized_title_empty = " ".join(first_words)
 
+            file_format = ".md"
             # Create the filename using sanitized title
-            filename = f"{sanitized_title}.txt"
+            if title:
+                filename = f"{sanitized_title}{file_format}"
+            else:
+                filename = f"{sanitized_title_empty}{file_format}"
 
             # Full path for the text file
             file_path = os.path.join(output_dir, filename)
 
-            # Ensure the filename does not already exist
 
-            if os.path.exists(file_path):
-                print(f"Warning: File {file_path} already exists. Skipping to avoid overwriting.")
-                continue  # Skip to avoid overwriting existing files
+
+
 
             # Write the content to the text file
-            with open(file_path, 'w', encoding='utf-8') as f_out:
-                f_out.write(file_text)
+            # mode "a+" chosen for merge duplicates notes into one note file
+            with open(file_path, 'a+', encoding='utf-8') as f_out:
+                f_out.write("\n" + file_text)
 
             print(f"Created: {file_path}")
+            print(f"title is:{title}")
 
     except etree.XMLSyntaxError as e:
         print(f"Error parsing XML with lxml: {e}")
@@ -181,7 +189,7 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
 
 if __name__ == "__main__":
     # Define the path to the XML backup file
-    xml_file_path = 'OnePlusNote.xml'  # Path to your XML file
+    xml_file_path = 'OnePlusNoteTest.xml'  # Path to your XML file
     # Define the output directory for the parsed text files
     output_directory = 'parsed_notes'  # Directory to save text files
     # Execute the parsing function
