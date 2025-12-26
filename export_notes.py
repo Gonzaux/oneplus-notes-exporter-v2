@@ -199,7 +199,7 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
             os.utime(file_path, times)
 
             print(f"Created: {file_path}")
-            print(f"title is:{title}")
+            print(f"title is:{filename}")
             print(f"date of file is {file_date}")
 
 
