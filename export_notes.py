@@ -144,8 +144,8 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
         # Iterate through each <richNoteRecord> element, change argument for './/noteRecord' if such tag used in imported XML file
         for note in root.findall('.//richNoteRecord'):
             _id = note.get('local_id')  # Unique identifier for the note
-            title = note.get('title')  # Title of the note
-            content = note.get('text', '')  # Content of the note
+            title = note.get('title', 'Untitled')  # Title of the note
+            content = note.get('text' '')  # Content of the note
             timestamp_c = note.get('create_time')
             timestamp_m = note.get('update_time')
 
@@ -159,14 +159,17 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
 
 
             # Sanitize the title to create a valid filename
-            sanitized_title = sanitize_filename(title)
             # If title is empty create title from text
-            first_words = content.split()[:8] # Set how many first words use to make title
             # turn list of words to str with spaces
-            sanitized_title_empty = " ".join(first_words)
+
+            sanitized_title = sanitize_filename(title)
+
+            first_words = content.split()[:8] # Set how many first words use to make title
+
+            sanitized_title_empty = sanitize_filename(" ".join(first_words))
 
 
-            file_format = ".txt"
+            file_format = ".md"
             # Create the filename using sanitized title
             if title:
                 filename = f"{sanitized_title}{file_format}"
@@ -185,7 +188,7 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
 
 
             # Include date in note
-            file_text = f"{content}\n{file_date}"
+            file_text = f"{content}\n\n{file_date}"
 
             # Write the content to the text file
             # mode "a+" chosen for merge duplicates notes into one note file
@@ -210,8 +213,10 @@ def parse_xml_to_txt_lxml(xml_file, output_dir):
 
 if __name__ == "__main__":
     # Define the path to the XML backup file
-    xml_file_path = 'OnePlusNoteTest.xml'  # Path to your XML file
+    xml_file_path = 'OnePlusNote.xml'  # Path to your XML file
     # Define the output directory for the parsed text files
-    output_directory = 'parsed_notes'  # Directory to save text files
+    output_directory = 'parsed_notes_md'  # Directory to save text files
     # Execute the parsing function
     parse_xml_to_txt_lxml(xml_file_path, output_directory)
+
+#v0.4
